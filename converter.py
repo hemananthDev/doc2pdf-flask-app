@@ -14,7 +14,7 @@ def convert_to_pdf(input_path, output_dir):
         if not soffice_path or not os.path.exists(soffice_path):
             raise RuntimeError("LibreOffice (soffice) not found. Make sure it's installed and on PATH.")
 
-        # Make sure paths are absolute
+        # Ensure absolute paths
         input_path = os.path.abspath(input_path)
         output_dir = os.path.abspath(output_dir)
 
@@ -22,6 +22,15 @@ def convert_to_pdf(input_path, output_dir):
         print(f"DEBUG: input = {input_path}")
         print(f"DEBUG: output_dir = {output_dir}")
 
+        # Remove existing PDF if it exists
+        output_filename = os.path.splitext(os.path.basename(input_path))[0] + '.pdf'
+        output_file_path = os.path.join(output_dir, output_filename)
+
+        if os.path.exists(output_file_path):
+            os.remove(output_file_path)
+            print(f"DEBUG: Removed existing file: {output_file_path}")
+
+        # Convert
         result = subprocess.run([
             soffice_path,
             "--headless",
@@ -34,8 +43,7 @@ def convert_to_pdf(input_path, output_dir):
             print("DEBUG: Conversion stderr:", result.stderr.decode())
             raise RuntimeError(result.stderr.decode() or "Conversion failed.")
 
-        output_file = os.path.splitext(os.path.basename(input_path))[0] + '.pdf'
-        return os.path.join(output_dir, output_file)
+        return output_file_path
 
     except Exception as e:
         raise RuntimeError(f"Conversion failed: {e}")
