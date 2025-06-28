@@ -2,37 +2,50 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "doc2pdf-app"
-        CONTAINER_NAME = "doc2pdf-container"
+        APP_DIR = "/home/ec2-user/doc2pdf-flask-app"
+        FLASK_PORT = "5000"
     }
 
     stages {
-        stage('Clone Repository') {
-            steps {
-                git 'https://github.com/hemananthDev/doc2pdf-flask-app.git'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t $IMAGE_NAME .'
-            }
-        }
-
-        stage('Stop Old Container (if running)') {
-            steps {
-                sh 'docker rm -f $CONTAINER_NAME || true'
-            }
-        }
-
-        stage('Run Container') {
+        stage('Clone Latest Code') {
             steps {
                 sh '''
-                docker run -d -p 5000:5000 \
-                    --name $CONTAINER_NAME \
-                    -v /usr/bin/soffice:/usr/bin/soffice \
-                    -v /usr/lib/libreoffice:/usr/lib/libreoffice \
-                    $IMAGE_NAME
+                    if [ -d "$APP_DIR" ]; then
+                        rm -rf $APP_DIR
+                    fi
+                    git clone https://github.com/hemananthDev/doc2pdf-flask-app.git $APP_DIR
+                '''
+            }
+        }
+
+        stage('Clean Old Files') {
+            steps {
+                sh '''
+                    find $APP_DIR/uploads/ -type f \\( -name "*.doc" -o -name "*.docx" -o -name "*.pdf" \\) -delete || true
+                '''
+            }
+        }
+
+        stage('Kill Running App') {
+            steps {
+                sh '''
+                    pkill -f "python app.py" || true
+                '''
+            }
+        }
+
+        stage('Install Requirements') {
+            steps {
+                sh '''
+                    pip install -r $APP_DIR/requirements.txt
+                '''
+            }
+        }
+
+        stage('Start Flask App') {
+            steps {
+                sh '''
+                    nohup python $APP_DIR/app.py > $APP_DIR/flask.log 2>&1 &
                 '''
             }
         }
@@ -43,7 +56,7 @@ pipeline {
             echo "❌ Build failed."
         }
         success {
-            echo "✅ Build and deployment successful!"
+            echo "✅ App deployed successfully without Docker."
         }
     }
 }
