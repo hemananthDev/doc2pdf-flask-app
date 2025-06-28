@@ -2,61 +2,32 @@ pipeline {
     agent any
 
     environment {
-        APP_DIR = "/home/ec2-user/doc2pdf-flask-app"
-        FLASK_PORT = "5000"
+        PDFCO_API_KEY = "hemananthdev@gmail.com_KYQ2fYiogUb7UHBiYHZ70X6J9B33Abf2S1JXAo2w2sLpRMD7QvDdVoVC9fM5OKvE"
     }
 
     stages {
-        stage('Clone Latest Code') {
+        stage('Clone Repository') {
             steps {
-                sh '''
-                    if [ -d "$APP_DIR" ]; then
-                        rm -rf $APP_DIR
-                    fi
-                    git clone https://github.com/hemananthDev/doc2pdf-flask-app.git $APP_DIR
-                '''
-            }
-        }
-
-        stage('Clean Old Files') {
-            steps {
-                sh '''
-                    find $APP_DIR/uploads/ -type f \\( -name "*.doc" -o -name "*.docx" -o -name "*.pdf" \\) -delete || true
-                '''
-            }
-        }
-
-        stage('Kill Running App') {
-            steps {
-                sh '''
-                    pkill -f "python app.py" || true
-                '''
+                git 'https://github.com/hemananthDev/doc2pdf-flask-app.git'
             }
         }
 
         stage('Install Requirements') {
             steps {
-                sh '''
-                    pip install -r $APP_DIR/requirements.txt
-                '''
+                sh 'pip install -r requirements.txt'
             }
         }
 
-        stage('Start Flask App') {
+        stage('Run Flask App') {
             steps {
-                sh '''
-                    nohup python $APP_DIR/app.py > $APP_DIR/flask.log 2>&1 &
-                '''
+                sh 'nohup python app.py &'
             }
         }
     }
 
     post {
-        failure {
-            echo "❌ Build failed."
-        }
         success {
-            echo "✅ App deployed successfully without Docker."
+            echo "✅ Deployed with PDF.co integration"
         }
     }
 }
