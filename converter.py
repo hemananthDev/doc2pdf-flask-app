@@ -5,7 +5,7 @@ import shutil
 
 def convert_to_pdf(input_path, output_dir):
     try:
-        # Detect platform
+        # Detect platform!
         if platform.system() == "Windows":
             soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
         else:
