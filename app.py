@@ -23,7 +23,20 @@ def convert():
         try:
             pdf_path = convert_to_pdf(input_path, UPLOAD_FOLDER)
             print(f"DEBUG: Converted PDF path: {pdf_path}")
-            return send_file(pdf_path, as_attachment=True)
+            response = send_file(pdf_path, as_attachment=True)
+
+            # Cleanup uploaded and converted files after response is sent
+            @response.call_on_close
+            def cleanup():
+                try:
+                    os.remove(input_path)
+                    os.remove(pdf_path)
+                    print(f"DEBUG: Cleaned up files: {input_path}, {pdf_path}")
+                except Exception as cleanup_error:
+                    print(f"DEBUG: Cleanup error: {str(cleanup_error)}")
+
+            return response
+
         except Exception as e:
             print(f"DEBUG: Exception during conversion: {str(e)}")
             return render_template('index.html', error=str(e))
