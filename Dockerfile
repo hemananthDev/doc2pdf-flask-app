@@ -1,27 +1,18 @@
-# Use a base image with Python and LibreOffice
-FROM python:3.10-slim
+# Use official Python image
+FROM python:3.11-slim
 
-# Install LibreOffice and dependencies
-RUN apt-get update && apt-get install -y \
-    libreoffice \
-    curl \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-# Set work directory
+# Set working directory
 WORKDIR /app
 
-# Copy your project files
-COPY . .
-
-# Install Python dependencies
+# Copy requirements file and install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Create the uploads folder
-RUN mkdir -p uploads
+# Copy application files
+COPY . .
 
-# Expose port
+# Expose the Flask default port
 EXPOSE 5000
 
-# Start the Flask app
+# Run the application
 CMD ["python", "app.py"]

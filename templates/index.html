@@ -4,18 +4,96 @@
     <meta charset="UTF-8">
     <title>DOC to PDF Converter</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        #loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        #loading-spinner::after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #007bff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1>DOC/DOCX to PDF Converter!</h1>
-        <form action="/convert" method="POST" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".doc,.docx" required>
+        <form id="convert-form">
+            <input type="file" name="file" id="file-input" accept=".doc,.docx" required>
             <button type="submit">Convert</button>
         </form>
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+        <div id="loading-spinner">Processing your file</div>
+        <div class="error" id="error-message"></div>
     </div>
+
+    <script>
+        const form = document.getElementById('convert-form');
+        const spinner = document.getElementById('loading-spinner');
+        const errorDiv = document.getElementById('error-message');
+        const fileInput = document.getElementById('file-input');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault(); // prevent page reload
+            errorDiv.textContent = '';
+            spinner.style.display = 'block';
+
+            const file = fileInput.files[0];
+            if (!file) {
+                spinner.style.display = 'none';
+                errorDiv.textContent = 'Please select a file.';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error(text);
+                }
+
+                const blob = await response.blob();
+                const downloadUrl = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = file.name.replace(/\.(docx|doc)$/i, '.pdf');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(downloadUrl);
+            } catch (error) {
+                errorDiv.textContent = 'Error: ' + error.message;
+            } finally {
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
 </body>
 </html>
