@@ -16,6 +16,9 @@ pipeline {
                     echo "🧼 Removing old images (doc2pdf-flask-app)..."
                     docker images -q doc2pdf-flask-app | xargs -r docker rmi -f || true
 
+                    echo "🗑 Removing dangling images..."
+                    docker image prune -f || true
+
                     echo "✅ Cleanup complete"
                 '''
             }
