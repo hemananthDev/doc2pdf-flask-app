@@ -2,10 +2,11 @@ import subprocess
 import os
 import platform
 import shutil
+import re
 
 def convert_to_pdf(input_path, output_dir):
     try:
-        # Detect platform
+        # Detect OS and get soffice path
         if platform.system() == "Windows":
             soffice_path = r"C:\Program Files\LibreOffice\program\soffice.exe"
         else:
@@ -14,7 +15,7 @@ def convert_to_pdf(input_path, output_dir):
         if not soffice_path or not os.path.exists(soffice_path):
             raise RuntimeError("LibreOffice (soffice) not found. Make sure it's installed and on PATH.")
 
-        # Ensure absolute paths
+        # Normalize paths
         input_path = os.path.abspath(input_path)
         output_dir = os.path.abspath(output_dir)
 
@@ -22,28 +23,30 @@ def convert_to_pdf(input_path, output_dir):
         print(f"DEBUG: input = {input_path}")
         print(f"DEBUG: output_dir = {output_dir}")
 
-        # Remove existing PDF if it exists
-        output_filename = os.path.splitext(os.path.basename(input_path))[0] + '.pdf'
-        output_file_path = os.path.join(output_dir, output_filename)
-
-        if os.path.exists(output_file_path):
-            os.remove(output_file_path)
-            print(f"DEBUG: Removed existing file: {output_file_path}")
-
-        # Convert
+        # Convert the DOC/DOCX to PDF
         result = subprocess.run([
             soffice_path,
             "--headless",
             "--convert-to", "pdf",
             "--outdir", output_dir,
             input_path
-        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
         if result.returncode != 0:
-            print("DEBUG: Conversion stderr:", result.stderr.decode())
-            raise RuntimeError(result.stderr.decode() or "Conversion failed.")
+            print("DEBUG: Conversion stderr:", result.stderr)
+            raise RuntimeError(result.stderr or "Conversion failed.")
 
-        return output_file_path
+        print("DEBUG: Conversion stdout:", result.stdout)
+
+        # Extract output path from stdout using regex
+        match = re.search(r'-> (.*?) using', result.stdout)
+        if not match:
+            raise RuntimeError("Could not determine output file path from LibreOffice output.")
+        
+        actual_output_path = match.group(1).strip()
+        print(f"DEBUG: Actual converted file: {actual_output_path}")
+
+        return actual_output_path
 
     except Exception as e:
         raise RuntimeError(f"Conversion failed: {e}")
